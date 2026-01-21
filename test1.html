@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Elderly Exercise Coach (MediaPipe Pose) – Innovation Edition</title>
+
+  <!-- QR generator (tiny) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --card:#ffffff;
+      --border:#e8e8e8;
+      --text:#111;
+      --muted:#666;
+      --ok:#0a7a2f;
+      --bad:#b00020;
+      --warn:#b35c00;
+      --shadow: 0 10px 30px rgba(0,0,0,.06);
+      --radius: 18px;
+      --scale: 1.0;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg,#fff,#fafafa);
+      color:var(--text);
+      font-size: calc(16px * var(--scale));
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding:16px;}
+    header{
+      display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      padding:14px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    .title{display:flex; flex-direction:column; gap:4px;}
+    .title h1{margin:0; font-size:24px; letter-spacing:.2px;}
+    .title .sub{color:var(--muted); font-size:14px}
+    .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    button, select, input{
+      border:1px solid var(--border);
+      background:#fff;
+      padding:14px 16px;
+      border-radius: 14px;
+      font-size:18px;
+      cursor:pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,.04);
+    }
+    button:disabled{opacity:.55; cursor:not-allowed}
+    select{min-width: 320px}
+    input{font-size:16px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius: 999px;
+      color:var(--muted);
+      font-size:14px;
+      background:#fff;
+    }
+    .main{
+      display:grid;
+      grid-template-columns: 1.75fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .main{grid-template-columns: 1fr;}
+      select{min-width: 100%}
+      button{width:100%}
+      .toolbar{width:100%}
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .canvasWrap{padding:12px}
+    canvas{
+      width:100%;
+      border-radius: 16px;
+      border:1px solid #f0f0f0;
+      background:#000;
+    }
+    .big{
+      font-size:56px;
+      font-weight:950;
+      line-height:1.05;
+      letter-spacing:.2px;
+      margin:0 0 10px 0;
+    }
+    .mid{font-size:22px; font-weight:800}
+    .statusLine{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:10px 0 12px 0;}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-size:16px;
+      color:var(--muted);
+    }
+    .ok{color:var(--ok)}
+    .bad{color:var(--bad)}
+    .warn{color:var(--warn)}
+    .countBox{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-top:12px;
+      padding:14px;
+      border-radius: 16px;
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, #fff, #fafafa);
+    }
+    .countLabel{color:var(--muted); font-size:16px}
+    .countNum{font-size:78px; font-weight:950; line-height:0.95}
+    .feedback{
+      margin-top:12px;
+      padding:14px;
+      border-radius: 16px;
+      border:1px solid var(--border);
+      background:#fff;
+    }
+    .feedback .h{font-size:18px; font-weight:800; margin:0 0 8px 0}
+    .feedback .t{font-size:20px; margin:0; color:#222}
+    .help{
+      margin-top:12px;
+      padding:14px;
+      border-radius: 16px;
+      border:1px dashed #dedede;
+      background:#fff;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+    .toggles{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px;}
+    .toggle{
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border:1px solid var(--border);
+      border-radius: 14px; background:#fff;
+      font-size:16px; color:var(--muted);
+    }
+    input[type="checkbox"]{transform: scale(1.3);}
+    .smallMono{
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size:12px;
+      color:#777;
+      margin-top:10px;
+      white-space: pre-wrap;
+    }
+
+    .screen{display:none;}
+    .screen.active{display:block;}
+    .screenTitle{font-size:26px; font-weight:950; margin:0 0 8px 0;}
+    .screenSub{color:var(--muted); margin:0 0 12px 0;}
+    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    @media (max-width: 980px){ .grid2{grid-template-columns:1fr;} }
+
+    .modalBack{
+      position:fixed; inset:0; background:rgba(0,0,0,.45);
+      display:none; align-items:center; justify-content:center;
+      padding:16px;
+      z-index:999;
+    }
+    .modalBack.show{display:flex;}
+    .modal{
+      width:min(920px, 100%);
+      background:#fff;
+      border-radius:18px;
+      border:1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      padding:16px;
+    }
+    .modalHead{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+    .modalHead h3{margin:0; font-size:20px;}
+    .modalBody{color:#222; line-height:1.55; margin-top:10px;}
+    .divider{height:1px; background:var(--border); margin:12px 0;}
+    .kpi{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .kpi .item{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .kpi .item .lab{color:var(--muted); font-size:13px}
+    .kpi .item .val{font-size:26px; font-weight:950}
+    .tiny{font-size:12px; color:var(--muted);}
+    .barWrap{margin-top:10px}
+    .barRow{display:flex; align-items:center; gap:10px; margin:8px 0;}
+    .barRow .d{width:86px; color:var(--muted); font-size:12px;}
+    .bar{flex:1; height:12px; border-radius:999px; border:1px solid var(--border); background:#fff; overflow:hidden;}
+    .bar > div{height:100%; background:rgba(10,122,47,.35);}
+    .barRow .n{width:46px; text-align:right; font-weight:800; color:#222; font-size:12px;}
+
+    /* logo */
+    .brandWrap{
+      display:flex; flex-direction:row; gap:14px; align-items:center;
+    }
+    .brandLogo{
+      width:64px; height:64px; object-fit:contain;
+      border-radius:14px; border:1px solid var(--border);
+      background:#fff; padding:6px;
+    }
+    .schoolName{
+      font-weight:900; color:#222;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brandWrap">
+      <!-- ใส่ไฟล์โลโก้: school-logo.png (อยู่โฟลเดอร์เดียวกับ index.html) -->
+      <img src="./school-logo.png" alt="Sarasas Witaed Suksa School Logo" class="brandLogo" />
+
+      <div class="title">
+        <h1>Elderly Exercise Coach – Innovation Edition</h1>
+        <div class="schoolName">โรงเรียนสารสาสน์วิเทศศึกษา (Sarasas Witaed Suksa School)</div>
+        <div class="sub">ปลอดภัย • ปรับตามผู้ใช้ (Calibration) • สรุปผล • เก็บข้อมูลในเครื่อง • ใช้ผ่าน QR ได้</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button id="btnSafety" title="กลับหน้าความปลอดภัย">Safety</button>
+      <button id="btnPrivacy" title="นโยบายความเป็นส่วนตัว">Privacy</button>
+      <button id="btnQR" title="สร้าง QR สำหรับเปิดบนมือถือ">QR</button>
+
+      <div class="pill">
+        ขนาดตัวอักษร
+        <select id="fontScale" style="min-width:auto; padding:10px 12px; font-size:16px;">
+          <option value="1.0" selected>ปกติ</option>
+          <option value="1.15">ใหญ่</option>
+          <option value="1.30">ใหญ่มาก</option>
+        </select>
+      </div>
+
+      <div class="pill">
+        FPS
+        <select id="fps" style="min-width:auto; padding:10px 12px; font-size:16px;">
+          <option value="10" selected>10</option>
+          <option value="7">7</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== SCREEN: SAFETY ===================== -->
+  <div id="screenSafety" class="screen active">
+    <div class="card" style="margin-top:14px;">
+      <h2 class="screenTitle">ก่อนเริ่มใช้งาน (ความปลอดภัย)</h2>
+      <p class="screenSub">โปรดอ่านเพื่อความปลอดภัยของผู้สูงอายุ และลดความเสี่ยงการบาดเจ็บ</p>
+
+      <div class="grid2">
+        <div class="card" style="box-shadow:none;">
+          <div class="mid">ข้อควรปฏิบัติ</div>
+          <ul style="line-height:1.7; margin-top:8px;">
+            <li>วางกล้องให้เห็นร่างกายชัด (แสงพอ)</li>
+            <li>สวมรองเท้าหรือยืนบนพื้นไม่ลื่น</li>
+            <li>มีเก้าอี้/พนักสำหรับจับยึดได้</li>
+            <li>ทำช้า ๆ หายใจสม่ำเสมอ หากเวียนหัวให้หยุด</li>
+          </ul>
+          <div class="tiny">* ระบบนี้ช่วยแนะนำท่า ไม่ใช่เครื่องมือแพทย์</div>
+        </div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="mid">ตั้งค่าโหมดผู้สูงอายุ</div>
+          <div class="toggles" style="margin-top:10px;">
+            <label class="toggle">
+              <input type="checkbox" id="lowRisk" checked />
+              Low-Risk (นับช้าลง/นิ่งขึ้น)
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="tts" checked />
+              เสียงพูดแนะนำ
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="highContrast" />
+              คอนทราสต์สูง
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="caregiver" />
+              Caregiver mode (รายละเอียด)
+            </label>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="mid">เริ่มใช้งาน</div>
+          <p class="tiny">แนะนำทำ Calibration 15 วินาที เพื่อปรับเกณฑ์ให้เข้ากับร่างกาย/เก้าอี้</p>
+          <div class="row" style="gap:10px;">
+            <button id="btnGoCal">ทำ Calibration (แนะนำ)</button>
+            <button id="btnSkipToRun">ข้ามไปใช้งานเลย</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="mid">ประวัติ 7 วันล่าสุด (นับจากการบันทึกในเครื่องนี้)</div>
+      <div class="barWrap" id="historyBars"></div>
+      <div class="tiny">* แสดง “จำนวนรวม” ต่อวัน (รวมทุกท่า) / ข้อมูลอยู่ในเครื่อง (ไม่ส่งออก)</div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN: CALIBRATION ===================== -->
+  <div id="screenCal" class="screen">
+    <div class="card" style="margin-top:14px;">
+      <h2 class="screenTitle">Calibration 15 วินาที</h2>
+      <p class="screenSub">ระบบจะปรับเกณฑ์ (threshold) ให้เข้ากับผู้ใช้ ลดการนับผิด และเพิ่มความแม่นยำ</p>
+
+      <div class="grid2">
+        <div class="card canvasWrap" style="box-shadow:none;">
+          <canvas id="calCanvas"></canvas>
+          <div class="help">
+            <b>วิธีทำ:</b>
+            1) นั่งตรง/ยืนตรงตามคำสั่งบนจอ<br>
+            2) อยู่นิ่ง ๆ 5–8 วินาที<br>
+            3) จากนั้นทำท่าตัวอย่าง 2–3 ครั้งช้า ๆ<br>
+          </div>
+        </div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="statusLine">
+            <span class="badge" id="calState">Ready</span>
+            <span class="badge" id="calHint">-</span>
+          </div>
+
+          <h2 class="big" id="calText">เตรียมพร้อม</h2>
+
+          <div class="kpi">
+            <div class="item">
+              <div class="lab">เวลาคงเหลือ</div>
+              <div class="val" id="calRemain">15</div>
+            </div>
+            <div class="item">
+              <div class="lab">คุณภาพ Pose</div>
+              <div class="val" id="calQ">-</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="mid">ผล Calibration</div>
+          <div class="tiny" id="calResultText">ยังไม่เริ่ม</div>
+
+          <div class="row" style="gap:10px; margin-top:12px;">
+            <button id="btnCalStart">Start Calibration</button>
+            <button id="btnCalStop" disabled>Stop</button>
+            <button id="btnCalDone" disabled>ใช้ค่าที่ได้ → ไปใช้งาน</button>
+          </div>
+
+          <div class="smallMono" id="calDebug"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN: RUN ===================== -->
+  <div id="screenRun" class="screen">
+    <div class="card" style="margin-top:14px;">
+      <div class="row" style="gap:10px;">
+        <button id="btnStart">Start</button>
+        <button id="btnStop" disabled>Stop</button>
+        <button id="btnReset">Reset Count</button>
+        <button id="btnFinish">Finish & Summary</button>
+
+        <select id="exercise">
+          <option value="sitstand" selected>1) นั่ง–ยืนจากเก้าอี้ (Sit-to-Stand)</option>
+          <option value="overhead">2) ยกแขนเหนือศีรษะ (Overhead Raise)</option>
+          <option value="lateral">3) กางแขนด้านข้าง (Lateral Raise)</option>
+          <option value="elbowcurl">4) งอ–เหยียดศอก (Elbow Flex/Extend)</option>
+          <option value="kneeraise">5) ยกเข่าสลับ (Knee Raise)</option>
+          <option value="forwardstep">6) ก้าวเท้าไปข้างหน้า (Forward Step)</option>
+          <option value="sidebend">7) เอียงลำตัวซ้าย–ขวา (Side Bend)</option>
+          <option value="balance">8) ยืนทรงตัว (Balance Hold)</option>
+          <option value="backleg">9) เตะขาไปด้านหลัง (Back Leg Raise)</option>
+          <option value="shoulderroll">10) หมุนไหล่ (Shoulder Roll)</option>
+        </select>
+
+        <label class="toggle" style="margin-left:auto;">
+          <input type="checkbox" id="showSkeleton" checked />
+          แสดงโครงกระดูก
+        </label>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="card canvasWrap">
+        <canvas id="canvas"></canvas>
+        <div class="help">
+          <b>คำแนะนำ:</b> ทำช้า ๆ และนิ่งตอนถึงปลายท่า ระบบจะนับเมื่อ “ถูกต่อเนื่อง” เพื่อลดการนับผิด
+          <br><span class="tiny">Tip: ถ้าช้า/หน่วง ให้ลด FPS เป็น 5 หรือปิดการแสดงโครงกระดูก</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="statusLine">
+          <span class="badge" id="runState">Ready</span>
+          <span class="badge" id="quality">Pose: -</span>
+          <span class="badge" id="phaseBadge">Phase: -</span>
+          <span class="badge" id="riskBadge">Risk: -</span>
+        </div>
+
+        <h2 class="big" id="resultText">-</h2>
+
+        <div class="countBox">
+          <div>
+            <div class="countLabel">จำนวนครั้ง</div>
+            <div class="countNum" id="count">0</div>
+          </div>
+          <div>
+            <div class="countLabel">เวลาฝึก</div>
+            <div class="countNum" style="font-size:44px;" id="elapsed">00:00</div>
+          </div>
+        </div>
+
+        <div class="feedback">
+          <p class="h">คำแนะนำ</p>
+          <p class="t" id="feedbackText">เลือกท่า แล้วกด Start</p>
+        </div>
+
+        <div class="smallMono" id="debug" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN: SUMMARY ===================== -->
+  <div id="screenSummary" class="screen">
+    <div class="card" style="margin-top:14px;">
+      <h2 class="screenTitle">สรุปผลการฝึก (Session Summary)</h2>
+      <p class="screenSub">สรุปจำนวนครั้ง/เวลา/ความถูกต้องโดยประมาณ และบันทึกลงเครื่อง</p>
+
+      <div class="kpi">
+        <div class="item">
+          <div class="lab">ท่าที่ฝึก</div>
+          <div class="val" id="sumExercise">-</div>
+        </div>
+        <div class="item">
+          <div class="lab">เวลาฝึก</div>
+          <div class="val" id="sumTime">-</div>
+        </div>
+        <div class="item">
+          <div class="lab">จำนวนครั้ง</div>
+          <div class="val" id="sumCount">-</div>
+        </div>
+        <div class="item">
+          <div class="lab">ความถูกต้อง (ประมาณ)</div>
+          <div class="val" id="sumAcc">-</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="mid">แนวโน้ม 7 วันล่าสุด</div>
+      <div class="barWrap" id="summaryBars"></div>
+
+      <div class="divider"></div>
+
+      <div class="row" style="gap:10px;">
+        <button id="btnSave">Save to History</button>
+        <button id="btnBackRun">กลับไปฝึกต่อ</button>
+        <button id="btnBackSafety">กลับหน้า Safety</button>
+      </div>
+
+      <div class="tiny" style="margin-top:10px;">
+        * ข้อมูลถูกเก็บใน LocalStorage ของเบราว์เซอร์เครื่องนี้ (ไม่ส่งออกอินเทอร์เน็ต)
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL: PRIVACY ===================== -->
+<div id="privacyBack" class="modalBack">
+  <div class="modal">
+    <div class="modalHead">
+      <h3>Privacy Statement (ความเป็นส่วนตัว)</h3>
+      <button id="btnClosePrivacy" style="padding:10px 12px; font-size:16px;">ปิด</button>
+    </div>
+    <div class="divider"></div>
+    <div class="modalBody">
+      <ul style="line-height:1.7; margin:0; padding-left:18px;">
+        <li><b>ประมวลผลบนเครื่อง (On-device)</b>: ระบบคำนวณจุด Pose และการนับ “บนอุปกรณ์ผู้ใช้”</li>
+        <li><b>ไม่อัปโหลดวิดีโอ</b>: วิดีโอจากกล้องไม่ถูกส่งไปเซิร์ฟเวอร์</li>
+        <li><b>เก็บเฉพาะสรุป</b> (ถ้ากด Save): เวลา/จำนวนครั้ง/คะแนนโดยประมาณ เก็บใน LocalStorage</li>
+        <li>ผู้ใช้สามารถล้างข้อมูลได้โดยล้างประวัติในเบราว์เซอร์ (Clear site data)</li>
+      </ul>
+      <div class="tiny" style="margin-top:10px;">
+        หมายเหตุ: โมเดล MediaPipe ถูกโหลดจาก CDN เพื่อให้ทำงานได้ แต่ข้อมูลวิดีโอไม่ถูกส่งออก
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: QR ===================== -->
+<div id="qrBack" class="modalBack">
+  <div class="modal">
+    <div class="modalHead">
+      <h3>สร้าง QR เพื่อเปิดบนโทรศัพท์</h3>
+      <button id="btnCloseQR" style="padding:10px 12px; font-size:16px;">ปิด</button>
+    </div>
+    <div class="divider"></div>
+    <div class="modalBody">
+      <div class="tiny">ใส่ URL ที่โทรศัพท์เข้าถึงได้ เช่น <b>http://192.168.1.23:5500/</b> (Wi-Fi เดียวกัน) หรือ URL จาก GitHub Pages/Netlify</div>
+      <div class="row" style="margin-top:10px;">
+        <input id="qrUrl" placeholder="วาง URL ที่นี่..." style="flex:1; min-width:260px;"/>
+        <button id="btnMakeQR">Generate QR</button>
+      </div>
+      <div class="divider"></div>
+      <div id="qrBox" style="display:flex; justify-content:center;"></div>
+      <div class="tiny" style="margin-top:10px; text-align:center;">
+        เปิดกล้องมือถือสแกน QR → Allow กล้อง → ใช้งานได้
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { FilesetResolver, PoseLandmarker, DrawingUtils } from
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+  const screens = {
+    safety: document.getElementById("screenSafety"),
+    cal: document.getElementById("screenCal"),
+    run: document.getElementById("screenRun"),
+    summary: document.getElementById("screenSummary"),
+  };
+  function showScreen(name){
+    Object.values(screens).forEach(s=>s.classList.remove("active"));
+    screens[name].classList.add("active");
+  }
+
+  const btnSafety = document.getElementById("btnSafety");
+  const btnPrivacy = document.getElementById("btnPrivacy");
+  const btnQR = document.getElementById("btnQR");
+  const fontScaleSel = document.getElementById("fontScale");
+  const fpsSel = document.getElementById("fps");
+
+  const lowRiskChk = document.getElementById("lowRisk");
+  const ttsChk = document.getElementById("tts");
+  const hcChk = document.getElementById("highContrast");
+  const caregiverChk = document.getElementById("caregiver");
+
+  const historyBars = document.getElementById("historyBars");
+
+  const calCanvas = document.getElementById("calCanvas");
+  const calCtx = calCanvas.getContext("2d");
+  const calState = document.getElementById("calState");
+  const calHint  = document.getElementById("calHint");
+  const calText  = document.getElementById("calText");
+  const calRemain = document.getElementById("calRemain");
+  const calQ = document.getElementById("calQ");
+  const calResultText = document.getElementById("calResultText");
+  const calDebug = document.getElementById("calDebug");
+  const btnCalStart = document.getElementById("btnCalStart");
+  const btnCalStop  = document.getElementById("btnCalStop");
+  const btnCalDone  = document.getElementById("btnCalDone");
+  const btnGoCal = document.getElementById("btnGoCal");
+  const btnSkipToRun = document.getElementById("btnSkipToRun");
+
+  const btnStart = document.getElementById("btnStart");
+  const btnStop  = document.getElementById("btnStop");
+  const btnReset = document.getElementById("btnReset");
+  const btnFinish = document.getElementById("btnFinish");
+  const showSkeletonChk = document.getElementById("showSkeleton");
+  const exSel = document.getElementById("exercise");
+
+  const runStateEl = document.getElementById("runState");
+  const qualityEl  = document.getElementById("quality");
+  const phaseEl    = document.getElementById("phaseBadge");
+  const riskEl     = document.getElementById("riskBadge");
+  const resultEl   = document.getElementById("resultText");
+  const fbEl       = document.getElementById("feedbackText");
+  const countEl    = document.getElementById("count");
+  const elapsedEl  = document.getElementById("elapsed");
+  const debugEl    = document.getElementById("debug");
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const sumExercise = document.getElementById("sumExercise");
+  const sumTime = document.getElementById("sumTime");
+  const sumCount = document.getElementById("sumCount");
+  const sumAcc = document.getElementById("sumAcc");
+  const summaryBars = document.getElementById("summaryBars");
+  const btnSave = document.getElementById("btnSave");
+  const btnBackRun = document.getElementById("btnBackRun");
+  const btnBackSafety = document.getElementById("btnBackSafety");
+
+  const privacyBack = document.getElementById("privacyBack");
+  const btnClosePrivacy = document.getElementById("btnClosePrivacy");
+  const qrBack = document.getElementById("qrBack");
+  const btnCloseQR = document.getElementById("btnCloseQR");
+  const qrUrl = document.getElementById("qrUrl");
+  const btnMakeQR = document.getElementById("btnMakeQR");
+  const qrBox = document.getElementById("qrBox");
+
+  function setTheme(high){
+    if(!high){
+      document.documentElement.style.setProperty("--text", "#111");
+      document.documentElement.style.setProperty("--muted", "#666");
+      document.documentElement.style.setProperty("--border", "#e8e8e8");
+      document.documentElement.style.setProperty("--card", "#fff");
+      return;
+    }
+    document.documentElement.style.setProperty("--text", "#000");
+    document.documentElement.style.setProperty("--muted", "#222");
+    document.documentElement.style.setProperty("--border", "#000");
+    document.documentElement.style.setProperty("--card", "#fff");
+  }
+  function setScale(v){
+    document.documentElement.style.setProperty("--scale", String(v));
+  }
+
+  function sayOnce(text, cooldownMs=1800){
+    if(!ttsChk.checked) return;
+    const now = Date.now();
+    if(text === sayOnce._last && (now - sayOnce._t) < cooldownMs) return;
+    sayOnce._last = text; sayOnce._t = now;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "th-TH";
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    }catch{}
+  }
+  sayOnce._last=""; sayOnce._t=0;
+
+  function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+  function dist(A,B){ return Math.hypot(A.x-B.x, A.y-B.y); }
+  function angleABC(A,B,C){
+    const BAx = A.x - B.x, BAy = A.y - B.y;
+    const BCx = C.x - B.x, BCy = C.y - B.y;
+    const dot = BAx*BCx + BAy*BCy;
+    const magBA = Math.hypot(BAx,BAy);
+    const magBC = Math.hypot(BCx,BCy);
+    const cos = clamp(dot / (magBA*magBC + 1e-9), -1, 1);
+    return Math.acos(cos) * 180/Math.PI;
+  }
+
+  const STORAGE_KEY = "elderlyCoachHistoryV1";
+  function loadHistory(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch{ return []; }
+  }
+  function saveHistory(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  }
+  function lastNDays(n=7){
+    const out=[];
+    const d = new Date();
+    for(let i=n-1;i>=0;i--){
+      const t = new Date(d.getTime() - i*24*3600*1000);
+      const y=t.getFullYear();
+      const m=String(t.getMonth()+1).padStart(2,"0");
+      const dd=String(t.getDate()).padStart(2,"0");
+      out.push(`${y}-${m}-${dd}`);
+    }
+    return out;
+  }
+  function renderBars(container, history){
+    container.innerHTML="";
+    const days = lastNDays(7);
+    const map = new Map();
+    for(const e of history){
+      map.set(e.day, (map.get(e.day)||0) + (e.total||0));
+    }
+    const vals = days.map(d=>map.get(d)||0);
+    const max = Math.max(1, ...vals);
+
+    for(let i=0;i<days.length;i++){
+      const day = days[i];
+      const v = vals[i];
+      const row = document.createElement("div");
+      row.className="barRow";
+      const dEl = document.createElement("div");
+      dEl.className="d";
+      dEl.textContent = day.slice(5);
+      const bar = document.createElement("div");
+      bar.className="bar";
+      const fill = document.createElement("div");
+      fill.style.width = `${Math.round((v/max)*100)}%`;
+      bar.appendChild(fill);
+      const nEl = document.createElement("div");
+      nEl.className="n";
+      nEl.textContent = String(v);
+      row.appendChild(dEl);
+      row.appendChild(bar);
+      row.appendChild(nEl);
+      container.appendChild(row);
+    }
+  }
+
+  function openQR(){
+    qrBack.classList.add("show");
+    qrUrl.value = window.location.href;
+    makeQR(qrUrl.value);
+  }
+  function closeQR(){
+    qrBack.classList.remove("show");
+  }
+  function makeQR(url){
+    qrBox.innerHTML="";
+    try{
+      new QRCode(qrBox, {text:url, width:220, height:220});
+    }catch{
+      qrBox.textContent = "สร้าง QR ไม่สำเร็จ";
+    }
+  }
+
+  let poseLandmarker=null, drawingUtils=null;
+  let video=null, stream=null;
+  let running=false;
+  let calRunning=false;
+  let lastTs=0;
+  let startTimeMs=0;
+
+  const IDX = {
+    lShoulder:11, rShoulder:12,
+    lElbow:13, rElbow:14,
+    lWrist:15, rWrist:16,
+    lHip:23, rHip:24,
+    lKnee:25, rKnee:26,
+    lAnkle:27, rAnkle:28
+  };
+
+  function poseQuality(lm){
+    const pts = [IDX.lShoulder, IDX.rShoulder, IDX.lHip, IDX.rHip, IDX.lKnee, IDX.rKnee];
+    let sum=0;
+    for(const i of pts) sum += (lm[i].visibility ?? 0.7);
+    return sum/pts.length;
+  }
+  function pickSide(lm, leftIdxs, rightIdxs){
+    const L = leftIdxs.reduce((s,i)=> s + (lm[i].visibility ?? 1), 0);
+    const R = rightIdxs.reduce((s,i)=> s + (lm[i].visibility ?? 1), 0);
+    return (L >= R) ? "L" : "R";
+  }
+
+  const TH = {
+    sit: 105,
+    stand: 160,
+    elbowFlex: 75,
+    elbowExt: 155,
+    lateralUpMin: 70,
+    lateralUpMax: 125,
+    sideTilt: 0.04,
+    kneeMargin: 0.03,
+  };
+  const THP = {...TH};
+
+  function holdMs(){ return lowRiskChk.checked ? 650 : 350; }
+  function needHoldFrames(fps){ return Math.max(2, Math.ceil((holdMs()/1000) * fps)); }
+
+  class RepCounter{
+    constructor(){ this.reset(); }
+    reset(){ this.count=0; this.phase="INIT"; this.hold=0; this.okFrames=0; this.totalFrames=0; }
+  }
+  const rep = new RepCounter();
+  const session = { exKey:"sitstand", exName:"", startMs:0, endMs:0, approxAcc:0 };
+
+  let riskPrev = null;
+  let riskScore = 0;
+  function riskUpdate(lm){
+    const Lh=lm[IDX.lHip], Rh=lm[IDX.rHip];
+    const hx=(Lh.x+Rh.x)/2, hy=(Lh.y+Rh.y)/2;
+    if(!riskPrev){ riskPrev={x:hx,y:hy}; riskScore=0; return {level:"OK", msg:"-"}; }
+    const mv = Math.hypot(hx-riskPrev.x, hy-riskPrev.y);
+    riskPrev={x:hx,y:hy};
+
+    if(mv > 0.02) riskScore += 2;
+    else if(mv > 0.012) riskScore += 1;
+    else riskScore = Math.max(0, riskScore-1);
+
+    if(riskScore >= 8) return {level:"HIGH", msg:"หยุดพัก/จับยึด"};
+    if(riskScore >= 4) return {level:"MED", msg:"ช้าลง/จับยึด"};
+    return {level:"OK", msg:"-"}; 
+  }
+
+  const EX = {
+    sitstand: {
+      name:"นั่ง–ยืนจากเก้าอี้",
+      instruction:"นั่งลงให้ถึงระดับ แล้วลุกขึ้นจนยืนตรง",
+      analyze(lm, fps){
+        const side = pickSide(lm, [IDX.lHip,IDX.lKnee,IDX.lAnkle], [IDX.rHip,IDX.rKnee,IDX.rAnkle]);
+        const hip = lm[side==="L"?IDX.lHip:IDX.rHip];
+        const knee = lm[side==="L"?IDX.lKnee:IDX.rKnee];
+        const ankle = lm[side==="L"?IDX.lAnkle:IDX.rAnkle];
+        const kneeAng = angleABC(hip,knee,ankle);
+
+        const SIT_ANGLE = THP.sit;
+        const STAND_ANGLE = THP.stand;
+        const holdN = needHoldFrames(fps);
+
+        if(rep.phase === "INIT") rep.phase = "UP";
+
+        if(rep.phase === "UP"){
+          if(kneeAng < SIT_ANGLE){
+            rep.phase = "DOWN";
+            rep.hold = 0;
+            return {ok:true, main:"ลงถึงแล้ว ✅", feedback:"ต่อไปลุกขึ้นช้า ๆ", phase:"DOWN",
+                    debug:`knee=${kneeAng.toFixed(0)}° < ${SIT_ANGLE}` , event:"DOWN_REACHED"};
+          }
+          return {ok:false, main:"รอท่าลงนั่ง", feedback:`งอเข่า-สะโพกช้า ๆ (เข่า ${kneeAng.toFixed(0)}°)`, phase:"UP",
+                  debug:`knee=${kneeAng.toFixed(1)}°`};
+        }else{
+          if(kneeAng > STAND_ANGLE){
+            rep.hold++;
+            if(rep.hold >= holdN){
+              rep.count++; rep.phase = "UP"; rep.hold = 0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก ทำต่อได้", phase:"UP",
+                      debug:`stand hold ok knee=${kneeAng.toFixed(0)}°`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังยืน... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"DOWN",
+                    debug:`knee=${kneeAng.toFixed(0)}°`};
+          }
+          rep.hold = 0;
+          return {ok:false, main:"ลุกให้สุด", feedback:`เหยียดเข่าจนยืนตรง (เข่า ${kneeAng.toFixed(0)}°)`, phase:"DOWN",
+                  debug:`knee=${kneeAng.toFixed(1)}°`};
+        }
+      }
+    },
+    overhead: {
+      name:"ยกแขนเหนือศีรษะ",
+      instruction:"ยกแขนให้ข้อมือสูงกว่าไหล่ทั้งสองข้าง แล้วลดลง",
+      analyze(lm, fps){
+        const Ls=lm[IDX.lShoulder], Rs=lm[IDX.rShoulder];
+        const Lw=lm[IDX.lWrist],    Rw=lm[IDX.rWrist];
+        const holdN = needHoldFrames(fps);
+
+        const up = (Lw.y < Ls.y) && (Rw.y < Rs.y);
+        if(rep.phase === "INIT") rep.phase = "DOWN";
+
+        if(rep.phase === "DOWN"){
+          if(up){
+            rep.hold++;
+            if(rep.hold >= holdN){
+              rep.phase="UP"; rep.hold=0;
+              return {ok:true, main:"ยกถึงแล้ว ✅", feedback:"ค้างเล็กน้อย แล้วค่อยลดลง", phase:"UP",
+                      debug:`up=true`, event:"UP_REACHED"};
+            }
+            return {ok:true, main:"กำลังยก... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"DOWN",
+                    debug:`up=true`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"ยกแขนขึ้น", feedback:"ยกให้ข้อมือสูงกว่าไหล่ทั้งสองข้าง", phase:"DOWN",
+                  debug:`up=false`};
+        } else {
+          const down = (Lw.y > Ls.y) && (Rw.y > Rs.y);
+          if(down){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="DOWN"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก ทำต่อได้", phase:"DOWN",
+                      debug:`down ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังลด... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"UP",
+                    debug:`down=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างท่ายก ✅", feedback:"ลดแขนลงช้า ๆ", phase:"UP",
+                  debug:`still up`};
+        }
+      }
+    },
+    lateral: {
+      name:"กางแขนด้านข้าง",
+      instruction:"กางแขนออกด้านข้างจนระดับไหล่ แล้วปล่อยลง",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const L = {hip: lm[IDX.lHip], shoulder: lm[IDX.lShoulder], elbow: lm[IDX.lElbow]};
+        const R = {hip: lm[IDX.rHip], shoulder: lm[IDX.rShoulder], elbow: lm[IDX.rElbow]};
+        const angL = angleABC(L.elbow, L.shoulder, L.hip);
+        const angR = angleABC(R.elbow, R.shoulder, R.hip);
+
+        const UP_MIN = THP.lateralUpMin;
+        const UP_MAX = THP.lateralUpMax;
+        const up = (angL>=UP_MIN && angL<=UP_MAX) && (angR>=UP_MIN && angR<=UP_MAX);
+
+        if(rep.phase==="INIT") rep.phase="DOWN";
+
+        if(rep.phase==="DOWN"){
+          if(up){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase="UP"; rep.hold=0;
+              return {ok:true, main:"กางถึงแล้ว ✅", feedback:"ค้างเล็กน้อย แล้วปล่อยลง", phase:"UP",
+                      debug:`angL=${angL.toFixed(0)} angR=${angR.toFixed(0)}`, event:"UP_REACHED"};
+            }
+            return {ok:true, main:"กำลังกาง... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"DOWN",
+                    debug:`up=true`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"กางแขนออกด้านข้าง", feedback:`ยกให้ระดับไหล่ (L ${angL.toFixed(0)}° / R ${angR.toFixed(0)}°)`, phase:"DOWN",
+                  debug:`up=false`};
+        } else {
+          const down = (angL < 45) && (angR < 45);
+          if(down){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="DOWN"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก ทำต่อได้", phase:"DOWN",
+                      debug:`down ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังลง... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"UP",
+                    debug:`down=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างท่ากาง ✅", feedback:"ปล่อยแขนลงช้า ๆ", phase:"UP",
+                  debug:`still up`};
+        }
+      }
+    },
+    elbowcurl: {
+      name:"งอ–เหยียดศอก",
+      instruction:"งอศอกให้ชัด แล้วเหยียดกลับ (พร้อมกันสองข้าง)",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const L = {s:lm[IDX.lShoulder], e:lm[IDX.lElbow], w:lm[IDX.lWrist]};
+        const R = {s:lm[IDX.rShoulder], e:lm[IDX.rElbow], w:lm[IDX.rWrist]};
+        const angL = angleABC(L.s, L.e, L.w);
+        const angR = angleABC(R.s, R.e, R.w);
+
+        const FLEX = THP.elbowFlex;
+        const EXT  = THP.elbowExt;
+        const flex = (angL < FLEX) && (angR < FLEX);
+        const ext  = (angL > EXT) && (angR > EXT);
+
+        if(rep.phase==="INIT") rep.phase="EXT";
+
+        if(rep.phase==="EXT"){
+          if(flex){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase="FLEX"; rep.hold=0;
+              return {ok:true, main:"งอถึงแล้ว ✅", feedback:"ต่อไปเหยียดกลับช้า ๆ", phase:"FLEX",
+                      debug:`angL=${angL.toFixed(0)} angR=${angR.toFixed(0)}`, event:"FLEX_REACHED"};
+            }
+            return {ok:true, main:"กำลังงอ... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"EXT",
+                    debug:`flex=true`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"งอศอก", feedback:`งอให้ชัด (L ${angL.toFixed(0)}° / R ${angR.toFixed(0)}°)`, phase:"EXT",
+                  debug:`flex=false`};
+        } else {
+          if(ext){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="EXT"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก ทำต่อได้", phase:"EXT",
+                      debug:`extend ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังเหยียด... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"FLEX",
+                    debug:`ext=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างท่างอ ✅", feedback:"เหยียดศอกกลับช้า ๆ", phase:"FLEX",
+                  debug:`still flex`};
+        }
+      }
+    },
+    kneeraise: {
+      name:"ยกเข่าสลับ",
+      instruction:"ยกเข่าขึ้นสลับซ้าย–ขวา (จับพนักเก้าอี้ได้)",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const Lhip=lm[IDX.lHip], Lk=lm[IDX.lKnee];
+        const Rhip=lm[IDX.rHip], Rk=lm[IDX.rKnee];
+
+        const M = THP.kneeMargin;
+        const Lup = (Lk.y < Lhip.y - M);
+        const Rup = (Rk.y < Rhip.y - M);
+
+        if(rep.phase==="INIT") rep.phase="DOWN";
+
+        const active = Lup ? "L" : (Rup ? "R" : "NONE");
+
+        if(rep.phase==="DOWN"){
+          if(active!=="NONE"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase=active; rep.hold=0;
+              return {ok:true, main:"ยกถึงแล้ว ✅", feedback:`ค่อย ๆ ลดเข่าลง (${active==="L"?"ซ้าย":"ขวา"})`, phase:rep.phase,
+                      debug:`active=${active}`, event:"UP_REACHED"};
+            }
+            return {ok:true, main:"กำลังยก... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"DOWN",
+                    debug:`active=${active}`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"ยกเข่าขึ้น", feedback:"ยกเข่าขึ้นทีละข้าง ช้า ๆ", phase:"DOWN",
+                  debug:`Lup=${Lup} Rup=${Rup}`};
+        } else {
+          if(active==="NONE"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="DOWN"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"สลับอีกข้างได้", phase:"DOWN",
+                      debug:`down ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังลง... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:rep.phase,
+                    debug:`down=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างเข่าสูง ✅", feedback:"ค่อย ๆ ลดเข่าลง", phase:rep.phase,
+                  debug:`still up`};
+        }
+      }
+    },
+    forwardstep: {
+      name:"ก้าวเท้าไปข้างหน้า",
+      instruction:"ก้าวเท้าไปข้างหน้า แล้วกลับมาชิด (ทำช้า ๆ)",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const La=lm[IDX.lAnkle], Ra=lm[IDX.rAnkle];
+        const Lh=lm[IDX.lHip],   Rh=lm[IDX.rHip];
+        const ankleDist = dist(La,Ra);
+        const hipsDist  = dist(Lh,Rh);
+
+        const step = ankleDist > hipsDist * 1.35;
+        if(rep.phase==="INIT") rep.phase="TOGETHER";
+
+        if(rep.phase==="TOGETHER"){
+          if(step){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase="STEP"; rep.hold=0;
+              return {ok:true, main:"ก้าวถึงแล้ว ✅", feedback:"กลับมาชิดช้า ๆ", phase:"STEP",
+                      debug:`ankleDist=${ankleDist.toFixed(3)} hipsDist=${hipsDist.toFixed(3)}`, event:"STEP_REACHED"};
+            }
+            return {ok:true, main:"กำลังก้าว... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"TOGETHER",
+                    debug:`step=true`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"ก้าวเท้าไปข้างหน้า", feedback:"ก้าวหนึ่งเท้า แล้วค่อย ๆ ยืนนิ่ง", phase:"TOGETHER",
+                  debug:`step=false`};
+        } else {
+          const together = ankleDist < hipsDist * 1.15;
+          if(together){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="TOGETHER"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก ทำต่อได้", phase:"TOGETHER",
+                      debug:`together ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังกลับ... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"STEP",
+                    debug:`together=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างท่าก้าว ✅", feedback:"ค่อย ๆ กลับมาชิด", phase:"STEP",
+                  debug:`still step`};
+        }
+      }
+    },
+    sidebend: {
+      name:"เอียงลำตัวซ้าย–ขวา",
+      instruction:"เอียงลำตัวซ้ายหรือขวาเล็กน้อย แล้วกลับมาตรง",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const Ls=lm[IDX.lShoulder], Rs=lm[IDX.rShoulder];
+        const Lh=lm[IDX.lHip],      Rh=lm[IDX.rHip];
+        const sx=(Ls.x+Rs.x)/2, hx=(Lh.x+Rh.x)/2;
+        const dx = sx - hx;
+        const T = THP.sideTilt;
+        const dir = (dx < -T) ? "LEFT" : (dx > T ? "RIGHT" : "CENTER");
+
+        if(rep.phase==="INIT") rep.phase="CENTER";
+
+        if(rep.phase==="CENTER"){
+          if(dir==="LEFT" || dir==="RIGHT"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase=dir; rep.hold=0;
+              return {ok:true, main:"เอียงถึงแล้ว ✅", feedback:"กลับมาตรงช้า ๆ", phase:rep.phase,
+                      debug:`dx=${dx.toFixed(3)} dir=${dir}`, event:"BEND_REACHED"};
+            }
+            return {ok:true, main:"กำลังเอียง... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"CENTER",
+                    debug:`dir=${dir}`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"เอียงลำตัว", feedback:"เอียงซ้ายหรือขวาเล็กน้อย", phase:"CENTER",
+                  debug:`dx=${dx.toFixed(3)} dir=${dir}`};
+        } else {
+          if(dir==="CENTER"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="CENTER"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"สลับอีกด้านได้", phase:"CENTER",
+                      debug:`back center ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังกลับ... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:rep.phase,
+                    debug:`dir=CENTER`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างท่าเอียง ✅", feedback:"กลับมาตรงช้า ๆ", phase:rep.phase,
+                  debug:`dir=${dir}`};
+        }
+      }
+    },
+    balance: {
+      name:"ยืนทรงตัว",
+      instruction:"ยืนทรงตัวนิ่ง ๆ (จับพนักเก้าอี้เบา ๆ ได้)",
+      analyze(lm, fps){
+        const Lh=lm[IDX.lHip], Rh=lm[IDX.rHip];
+        const hx=(Lh.x+Rh.x)/2, hy=(Lh.y+Rh.y)/2;
+
+        if(!EX.balance._prev){
+          EX.balance._prev = {x:hx,y:hy};
+          EX.balance._stableFrames = 0;
+          rep.count = 0;
+          rep.phase = "HOLD";
+        }
+        const pv=EX.balance._prev;
+        const mv = Math.hypot(hx-pv.x, hy-pv.y);
+        EX.balance._prev = {x:hx,y:hy};
+
+        const stable = mv < (lowRiskChk.checked ? 0.006 : 0.008);
+        if(stable) EX.balance._stableFrames++;
+        else EX.balance._stableFrames = Math.max(0, EX.balance._stableFrames - 2);
+
+        if(EX.balance._stableFrames >= fps){
+          rep.count++;
+          EX.balance._stableFrames = 0;
+          return {ok:true, main:"ทรงตัวดีมาก ✅", feedback:`ค้างต่อได้ (${rep.count} วินาที)`, phase:"HOLD",
+                  debug:`mv=${mv.toFixed(4)} stable`, event:"TICK"};
+        }
+        const remain = Math.max(0, fps - EX.balance._stableFrames);
+        return {ok: stable, main: stable ? "กำลังทรงตัว ✅" : "ขยับน้อยลง", feedback: stable ? `ค้างอีก ${remain} เฟรม` : "พยายามยืนนิ่ง ๆ",
+                phase:"HOLD", debug:`mv=${mv.toFixed(4)} stableFrames=${EX.balance._stableFrames}`};
+      }
+    },
+    backleg: {
+      name:"เตะขาไปด้านหลัง",
+      instruction:"ยกขาไปด้านหลังเล็กน้อย แล้วกลับมายืนตรง (จับพนักเก้าอี้ได้)",
+      analyze(lm, fps){
+        const holdN = needHoldFrames(fps);
+        const La=lm[IDX.lAnkle], Ra=lm[IDX.rAnkle];
+
+        if(!EX.backleg._base){ EX.backleg._base = {Ly:La.y, Ry:Ra.y}; }
+        const base = EX.backleg._base;
+
+        const alpha = 0.02;
+        if(rep.phase==="INIT" || rep.phase==="DOWN"){
+          base.Ly = base.Ly*(1-alpha) + La.y*alpha;
+          base.Ry = base.Ry*(1-alpha) + Ra.y*alpha;
+        }
+
+        const M = 0.04;
+        const Lup = (La.y < base.Ly - M);
+        const Rup = (Ra.y < base.Ry - M);
+        const active = Lup ? "L" : (Rup ? "R" : "NONE");
+
+        if(rep.phase==="INIT") rep.phase="DOWN";
+
+        if(rep.phase==="DOWN"){
+          if(active!=="NONE"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.phase=active; rep.hold=0;
+              return {ok:true, main:"ยกขาถึงแล้ว ✅", feedback:`ค่อย ๆ ลดขาลง (${active==="L"?"ซ้าย":"ขวา"})`, phase:rep.phase,
+                      debug:`active=${active}`, event:"UP_REACHED"};
+            }
+            return {ok:true, main:"กำลังยก... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:"DOWN",
+                    debug:`active=${active}`};
+          }
+          rep.hold=0;
+          return {ok:false, main:"ยกขาไปด้านหลัง", feedback:"ยกเบา ๆ ไม่ต้องสูง และจับยึดได้", phase:"DOWN",
+                  debug:`Lup=${Lup} Rup=${Rup}`};
+        } else {
+          if(active==="NONE"){
+            rep.hold++;
+            if(rep.hold>=holdN){
+              rep.count++; rep.phase="DOWN"; rep.hold=0;
+              return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"สลับอีกข้างได้", phase:"DOWN",
+                      debug:`down ok`, event:"REP"};
+            }
+            return {ok:true, main:"กำลังลง... ✅", feedback:`ค้างอีกนิด (${rep.hold}/${holdN})`, phase:rep.phase,
+                    debug:`down=true`};
+          }
+          rep.hold=0;
+          return {ok:true, main:"ค้างยกขา ✅", feedback:"ค่อย ๆ ลดขาลง", phase:rep.phase,
+                  debug:`still up`};
+        }
+      }
+    },
+    shoulderroll: {
+      name:"หมุนไหล่",
+      instruction:"หมุนไหล่เป็นวงช้า ๆ (ระบบนับจากรูปแบบขึ้น-ลงของไหล่โดยประมาณ)",
+      analyze(lm, fps){
+        const Ls=lm[IDX.lShoulder], Rs=lm[IDX.rShoulder];
+        const y = (Ls.y + Rs.y)/2;
+
+        if(!EX.shoulderroll._base){
+          EX.shoulderroll._base = y;
+          EX.shoulderroll._state = "MID";
+          EX.shoulderroll._minY = y;
+          EX.shoulderroll._maxY = y;
+          rep.phase="ROLL";
+          rep.hold=0;
+        }
+        EX.shoulderroll._minY = Math.min(EX.shoulderroll._minY, y);
+        EX.shoulderroll._maxY = Math.max(EX.shoulderroll._maxY, y);
+        const range = EX.shoulderroll._maxY - EX.shoulderroll._minY;
+        const MIN_RANGE = 0.03;
+
+        const mid = EX.shoulderroll._base;
+        const UP_T = mid - 0.015;
+        const DOWN_T = mid + 0.015;
+
+        let st = EX.shoulderroll._state;
+
+        if(range < MIN_RANGE){
+          EX.shoulderroll._base = mid*0.98 + y*0.02;
+          return {ok:false, main:"หมุนไหล่ช้า ๆ", feedback:"ขยับไหล่ให้เห็นวงเล็กน้อย", phase:"ROLL",
+                  debug:`range=${range.toFixed(3)} (เพิ่มช่วงการขยับ)`};
+        }
+
+        if(st==="MID"){
+          if(y < UP_T) st="UP";
+        }else if(st==="UP"){
+          if(y > DOWN_T) st="DOWN";
+        }else if(st==="DOWN"){
+          if(Math.abs(y - mid) < 0.01){
+            rep.count++;
+            EX.shoulderroll._minY = y;
+            EX.shoulderroll._maxY = y;
+            st="MID";
+            return {ok:true, main:"นับ 1 ครั้ง ✅", feedback:"ดีมาก หมุนต่อได้", phase:"ROLL",
+                    debug:`roll counted range=${range.toFixed(3)}`, event:"REP"};
+          }
+        }
+        EX.shoulderroll._state = st;
+        EX.shoulderroll._base = mid*0.99 + y*0.01;
+
+        return {ok:true, main:"กำลังหมุนไหล่ ✅", feedback:"ทำช้า ๆ ต่อเนื่อง", phase:"ROLL",
+                debug:`state=${st} range=${range.toFixed(3)}`};
+      }
+    }
+  };
+
+  function resetExerciseInternals(){
+    rep.reset();
+    riskPrev=null; riskScore=0;
+    EX.balance._prev=null; EX.balance._stableFrames=0;
+    EX.backleg._base=null;
+    EX.shoulderroll._base=null; EX.shoulderroll._state="MID";
+    EX.shoulderroll._minY=null; EX.shoulderroll._maxY=null;
+  }
+
+  function drawHUD(lm, q, ctx2, w, h){
+    if(showSkeletonChk.checked && drawingUtils){
+      drawingUtils.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {lineWidth:2});
+      drawingUtils.drawLandmarks(lm, {radius:2});
+    }
+    ctx2.save();
+    ctx2.fillStyle = "rgba(0,0,0,.35)";
+    ctx2.fillRect(10,10, Math.min(520,w-20), 64);
+    ctx2.fillStyle = "#fff";
+    ctx2.font = "22px system-ui";
+    const exText = EX[exSel.value]?.name || "";
+    ctx2.fillText(exText, 20, 38);
+    ctx2.font = "18px system-ui";
+    ctx2.fillText(`Pose: ${q.toFixed(2)} | HoldMs: ${holdMs()} | LowRisk: ${lowRiskChk.checked}`, 20, 62);
+    ctx2.restore();
+  }
+
+  function mmss(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
+    const mm = String(Math.floor(s/60)).padStart(2,"0");
+    const ss = String(s%60).padStart(2,"0");
+    return `${mm}:${ss}`;
+  }
+
+  async function setup(){
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numPoses: 1
+    });
+    drawingUtils = new DrawingUtils(ctx);
+  }
+
+  async function openCamera(){
+    video = document.createElement("video");
+    video.autoplay=true; video.playsInline=true; video.muted=true;
+    stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    video.srcObject = stream;
+    await video.play();
+  }
+  function closeCamera(){
+    try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch{}
+    stream=null; video=null;
+  }
+
+  async function startRun(){
+    if(running) return;
+    running = true;
+
+    btnStart.disabled=true;
+    btnStop.disabled=false;
+
+    resetExerciseInternals();
+    countEl.textContent="0";
+    resultEl.textContent="กำลังเริ่ม...";
+    fbEl.textContent=EX[exSel.value].instruction;
+
+    runStateEl.textContent="Starting...";
+    runStateEl.className="badge";
+
+    try{
+      await openCamera();
+      canvas.width = video.videoWidth || 960;
+      canvas.height = video.videoHeight || 540;
+
+      runStateEl.textContent="Running ✅";
+      runStateEl.className="badge ok";
+
+      startTimeMs = Date.now();
+      session.exKey = exSel.value;
+      session.exName = EX[exSel.value].name;
+      rep.totalFrames=0; rep.okFrames=0;
+
+      lastTs = performance.now();
+      sayOnce("เริ่มออกกำลังกายได้", 1200);
+      loopRun();
+    }catch(e){
+      console.error(e);
+      runStateEl.textContent="Camera Error ❌";
+      runStateEl.className="badge bad";
+      fbEl.textContent="ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้อง";
+      running=false;
+      btnStart.disabled=false;
+      btnStop.disabled=true;
+    }
+  }
+
+  function stopRun(){
+    running=false;
+    btnStart.disabled=false;
+    btnStop.disabled=true;
+    runStateEl.textContent="Stopped";
+    runStateEl.className="badge";
+    closeCamera();
+  }
+
+  function loopRun(){
+    if(!running || !poseLandmarker || !video) return;
+
+    const targetFps = parseInt(fpsSel.value,10);
+    const minDt = 1000/targetFps;
+    const now = performance.now();
+    if(now - lastTs < minDt){
+      requestAnimationFrame(loopRun);
+      return;
+    }
+    lastTs = now;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const res = poseLandmarker.detectForVideo(video, now);
+
+    elapsedEl.textContent = mmss(Date.now() - startTimeMs);
+
+    if(res.landmarks && res.landmarks.length>0){
+      const lm = res.landmarks[0];
+      const q = poseQuality(lm);
+      qualityEl.textContent = `Pose: ${q.toFixed(2)}`;
+
+      const r = riskUpdate(lm);
+      if(r.level==="HIGH"){
+        riskEl.textContent = "Risk: HIGH";
+        riskEl.className = "badge bad";
+        resultEl.textContent = "หยุดพักก่อน ❌";
+        resultEl.className = "big bad";
+        fbEl.textContent = "จับยึด/นั่งพัก หากเวียนหัวให้หยุดทันที";
+        sayOnce("หยุดพักก่อน", 2500);
+      } else if(r.level==="MED"){
+        riskEl.textContent = "Risk: MED";
+        riskEl.className = "badge warn";
+        sayOnce("ช้าลง และจับยึดได้", 2500);
+      } else {
+        riskEl.textContent = "Risk: OK";
+        riskEl.className = "badge ok";
+      }
+
+      const key = exSel.value;
+      const out = EX[key].analyze(lm, targetFps);
+
+      rep.totalFrames++;
+      if(out.ok) rep.okFrames++;
+
+      phaseEl.textContent = `Phase: ${out.phase ?? "-"}`;
+      phaseEl.className = "badge " + (out.ok ? "ok":"bad");
+
+      if(r.level!=="HIGH"){
+        if(out.ok){
+          resultEl.textContent = out.main;
+          resultEl.className = "big ok";
+        } else {
+          resultEl.textContent = out.main;
+          resultEl.className = "big bad";
+        }
+        fbEl.textContent = out.feedback || "-";
+      }
+
+      countEl.textContent = String(rep.count);
+
+      if(out.event==="REP"){
+        sayOnce(`นับ ${rep.count} ครั้ง`, 1200);
+      }else if(out.event==="UP_REACHED"){
+        sayOnce("ถึงแล้ว", 1200);
+      }
+
+      drawHUD(lm, q, ctx, canvas.width, canvas.height);
+
+      debugEl.style.display = caregiverChk.checked ? "block" : "none";
+      if(caregiverChk.checked){
+        debugEl.textContent =
+          `Exercise: ${EX[key].name}\n`+
+          `Count=${rep.count} Phase=${rep.phase} Hold=${rep.hold}\n`+
+          `okFrames=${rep.okFrames} totalFrames=${rep.totalFrames}\n`+
+          `Thresholds: sit=${THP.sit} stand=${THP.stand} elbowFlex=${THP.elbowFlex} elbowExt=${THP.elbowExt}\n`+
+          (out.debug ? `Debug: ${out.debug}\n` : "");
+      }
+
+    } else {
+      qualityEl.textContent = "Pose: -";
+      phaseEl.textContent = "Phase: -";
+      phaseEl.className="badge";
+      riskEl.textContent="Risk: -";
+      riskEl.className="badge";
+      resultEl.textContent="ไม่พบคนในภาพ";
+      resultEl.className="big warn";
+      fbEl.textContent="ขยับให้อยู่กลางภาพ และเพิ่มแสงสว่าง";
+    }
+
+    requestAnimationFrame(loopRun);
+  }
+
+  const cal = {
+    remain: 15,
+    timer: null,
+    samples: { kneeAng:[], elbowAng:[], sideDx:[], kneeMargin:[] }
+  };
+
+  async function startCalibration(){
+    if(calRunning) return;
+    calRunning=true;
+
+    btnCalStart.disabled=true;
+    btnCalStop.disabled=false;
+    btnCalDone.disabled=true;
+
+    calState.textContent="Starting...";
+    calState.className="badge";
+    calText.textContent="กำลังเริ่ม...";
+    calHint.textContent="ยืน/นั่งให้อยู่กลางภาพ";
+    calResultText.textContent="กำลังเก็บข้อมูล...";
+    calDebug.textContent="";
+
+    cal.remain = 15;
+    cal.samples = {kneeAng:[], elbowAng:[], sideDx:[], kneeMargin:[]};
+
+    resetExerciseInternals();
+
+    try{
+      await openCamera();
+      calCanvas.width = video.videoWidth || 960;
+      calCanvas.height = video.videoHeight || 540;
+
+      calState.textContent="Running ✅";
+      calState.className="badge ok";
+      sayOnce("เริ่มคาลิเบรตแล้ว", 1200);
+
+      cal.timer = setInterval(()=>{
+        cal.remain--;
+        calRemain.textContent = String(Math.max(0, cal.remain));
+        if(cal.remain<=0){
+          stopCalibration(true);
+        }
+      }, 1000);
+
+      lastTs = performance.now();
+      loopCalibration();
+    }catch(e){
+      console.error(e);
+      calState.textContent="Camera Error ❌";
+      calState.className="badge bad";
+      calRunning=false;
+      btnCalStart.disabled=false;
+      btnCalStop.disabled=true;
+      closeCamera();
+    }
+  }
+
+  function stopCalibration(auto=false){
+    if(!calRunning) return;
+    calRunning=false;
+
+    if(cal.timer){ clearInterval(cal.timer); cal.timer=null; }
+
+    btnCalStop.disabled=true;
+    btnCalStart.disabled=false;
+
+    closeCamera();
+    if(auto){
+      computeCalibration();
+      btnCalDone.disabled=false;
+      calState.textContent="Done ✅";
+      calState.className="badge ok";
+      sayOnce("คาลิเบรตเสร็จแล้ว", 1200);
+    }else{
+      calState.textContent="Stopped";
+      calState.className="badge";
+      calText.textContent="หยุดแล้ว";
+      calHint.textContent="-";
+    }
+  }
+
+  function loopCalibration(){
+    if(!calRunning || !poseLandmarker || !video) return;
+
+    const targetFps = parseInt(fpsSel.value,10);
+    const minDt = 1000/targetFps;
+    const now = performance.now();
+    if(now - lastTs < minDt){
+      requestAnimationFrame(loopCalibration);
+      return;
+    }
+    lastTs = now;
+
+    calCtx.drawImage(video, 0, 0, calCanvas.width, calCanvas.height);
+
+    const res = poseLandmarker.detectForVideo(video, now);
+
+    if(res.landmarks && res.landmarks.length>0){
+      const lm = res.landmarks[0];
+      const q = poseQuality(lm);
+      calQ.textContent = q.toFixed(2);
+
+      if(cal.remain > 10){
+        calText.textContent="ยืน/นั่งตรง";
+        calHint.textContent="อยู่นิ่ง ๆ 5 วินาที";
+      } else if(cal.remain > 5){
+        calText.textContent="ทำท่าตัวอย่าง";
+        calHint.textContent="นั่ง–ยืน หรือ งอศอก ช้า ๆ";
+      } else {
+        calText.textContent="เก็บข้อมูลช่วงท้าย";
+        calHint.textContent="ทำช้า ๆ ให้ชัด";
+      }
+
+      const side = pickSide(lm, [IDX.lHip,IDX.lKnee,IDX.lAnkle], [IDX.rHip,IDX.rKnee,IDX.rAnkle]);
+      const hip = lm[side==="L"?IDX.lHip:IDX.rHip];
+      const knee = lm[side==="L"?IDX.lKnee:IDX.rKnee];
+      const ankle = lm[side==="L"?IDX.lAnkle:IDX.rAnkle];
+      const kneeAng = angleABC(hip,knee,ankle);
+      cal.samples.kneeAng.push(kneeAng);
+
+      const L = {s:lm[IDX.lShoulder], e:lm[IDX.lElbow], w:lm[IDX.lWrist]};
+      const R = {s:lm[IDX.rShoulder], e:lm[IDX.rElbow], w:lm[IDX.rWrist]};
+      const eL = angleABC(L.s, L.e, L.w);
+      const eR = angleABC(R.s, R.e, R.w);
+      cal.samples.elbowAng.push((eL+eR)/2);
+
+      const Ls=lm[IDX.lShoulder], Rs=lm[IDX.rShoulder];
+      const Lh=lm[IDX.lHip], Rh=lm[IDX.rHip];
+      const sx=(Ls.x+Rs.x)/2, hx=(Lh.x+Rh.x)/2;
+      cal.samples.sideDx.push(sx-hx);
+
+      const Lhip=lm[IDX.lHip], Lk=lm[IDX.lKnee];
+      const Rhip=lm[IDX.rHip], Rk=lm[IDX.rKnee];
+      cal.samples.kneeMargin.push((Lhip.y - Lk.y + Rhip.y - Rk.y)/2);
+
+      if(showSkeletonChk.checked){
+        const du = new DrawingUtils(calCtx);
+        du.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, {lineWidth:2});
+        du.drawLandmarks(lm, {radius:2});
+      }
+
+      calDebug.textContent =
+        caregiverChk.checked
+          ? `kneeAng=${kneeAng.toFixed(1)} elbowAvg=${((eL+eR)/2).toFixed(1)} dx=${(sx-hx).toFixed(3)}`
+          : "";
+
+    } else {
+      calQ.textContent = "-";
+      calText.textContent="ไม่พบคนในภาพ";
+      calHint.textContent="ขยับให้อยู่กลางภาพ";
+    }
+
+    requestAnimationFrame(loopCalibration);
+  }
+
+  function percentile(arr, p){
+    if(arr.length===0) return null;
+    const a = [...arr].sort((x,y)=>x-y);
+    const idx = Math.floor((p/100)*(a.length-1));
+    return a[idx];
+  }
+  function computeCalibration(){
+    const knee = cal.samples.kneeAng;
+    const sit = percentile(knee, 20);
+    const stand = percentile(knee, 85);
+
+    const elbow = cal.samples.elbowAng;
+    const flex = percentile(elbow, 25);
+    const ext  = percentile(elbow, 85);
+
+    const dx = cal.samples.sideDx;
+    const dxAbs = dx.map(v=>Math.abs(v));
+    const dxP = percentile(dxAbs, 85) ?? TH.sideTilt;
+
+    const km = cal.samples.kneeMargin.map(v=>Math.max(0,v));
+    const kmP = percentile(km, 85) ?? TH.kneeMargin;
+
+    if(sit!=null && stand!=null){
+      THP.sit = clamp(Math.round(sit), 85, 125);
+      THP.stand = clamp(Math.round(stand), 145, 175);
+    } else {
+      THP.sit = TH.sit; THP.stand = TH.stand;
+    }
+    if(flex!=null && ext!=null){
+      THP.elbowFlex = clamp(Math.round(flex), 55, 95);
+      THP.elbowExt  = clamp(Math.round(ext), 135, 175);
+    } else {
+      THP.elbowFlex = TH.elbowFlex; THP.elbowExt = TH.elbowExt;
+    }
+
+    THP.sideTilt = clamp(dxP*1.35, 0.03, 0.08);
+    THP.kneeMargin = clamp(kmP*0.65, 0.02, 0.06);
+
+    THP.lateralUpMin = TH.lateralUpMin;
+    THP.lateralUpMax = TH.lateralUpMax;
+
+    calResultText.innerHTML =
+      `✅ ตั้งค่าเฉพาะบุคคลแล้ว<br>`+
+      `- Sit Angle ≈ <b>${THP.sit}°</b><br>`+
+      `- Stand Angle ≈ <b>${THP.stand}°</b><br>`+
+      `- Elbow Flex ≈ <b>${THP.elbowFlex}°</b>, Extend ≈ <b>${THP.elbowExt}°</b><br>`+
+      `- Side Tilt ≈ <b>${THP.sideTilt.toFixed(3)}</b><br>`+
+      `- Knee Raise Margin ≈ <b>${THP.kneeMargin.toFixed(3)}</b>`;
+  }
+
+  function buildSummary(){
+    const acc = rep.totalFrames>0 ? (rep.okFrames/rep.totalFrames) : 0;
+    session.approxAcc = acc;
+
+    session.endMs = Date.now();
+    const dur = session.endMs - session.startMs;
+
+    sumExercise.textContent = session.exName || "-";
+    sumTime.textContent = mmss(dur);
+    sumCount.textContent = String(rep.count);
+    sumAcc.textContent = `${Math.round(acc*100)}%`;
+
+    const hist = loadHistory();
+    renderBars(summaryBars, hist);
+  }
+
+  function saveSession(){
+    const hist = loadHistory();
+    const day = todayKey();
+    const dur = session.endMs - session.startMs;
+    const rec = {
+      day,
+      exKey: session.exKey,
+      exName: session.exName,
+      count: rep.count,
+      seconds: Math.floor(dur/1000),
+      acc: Math.round(session.approxAcc*100),
+      total: (session.exKey==="balance") ? rep.count : rep.count,
+      ts: Date.now()
+    };
+    hist.push(rec);
+    while(hist.length>200) hist.shift();
+    saveHistory(hist);
+
+    renderBars(historyBars, hist);
+    renderBars(summaryBars, hist);
+
+    sayOnce("บันทึกแล้ว", 800);
+  }
+
+  btnSafety.onclick = ()=>{ stopRun(); showScreen("safety"); };
+  btnPrivacy.onclick = ()=>{ privacyBack.classList.add("show"); };
+  btnQR.onclick = ()=>{ openQR(); };
+
+  btnClosePrivacy.onclick = ()=> privacyBack.classList.remove("show");
+  privacyBack.addEventListener("click",(e)=>{ if(e.target===privacyBack) privacyBack.classList.remove("show"); });
+
+  btnCloseQR.onclick = ()=> closeQR();
+  qrBack.addEventListener("click",(e)=>{ if(e.target===qrBack) closeQR(); });
+
+  btnMakeQR.onclick = ()=> makeQR(qrUrl.value.trim() || window.location.href);
+
+  fontScaleSel.onchange = ()=> setScale(fontScaleSel.value);
+  hcChk.onchange = ()=> setTheme(hcChk.checked);
+
+  btnGoCal.onclick = ()=> showScreen("cal");
+  btnSkipToRun.onclick = ()=> showScreen("run");
+
+  btnCalStart.onclick = startCalibration;
+  btnCalStop.onclick = ()=> stopCalibration(false);
+  btnCalDone.onclick = ()=>{ showScreen("run"); sayOnce("พร้อมเริ่มฝึก", 900); };
+
+  btnStart.onclick = async ()=>{
+    session.startMs = Date.now();
+    session.exKey = exSel.value;
+    session.exName = EX[exSel.value].name;
+    await startRun();
+  };
+  btnStop.onclick = ()=> stopRun();
+  btnReset.onclick = ()=>{
+    resetExerciseInternals();
+    countEl.textContent="0";
+    sayOnce("รีเซ็ตแล้ว", 800);
+  };
+  btnFinish.onclick = ()=>{
+    session.exKey = exSel.value;
+    session.exName = EX[exSel.value].name;
+    session.endMs = Date.now();
+    stopRun();
+    showScreen("summary");
+    buildSummary();
+  };
+
+  exSel.onchange = ()=>{
+    resetExerciseInternals();
+    countEl.textContent="0";
+    fbEl.textContent = EX[exSel.value].instruction;
+    sayOnce("เปลี่ยนท่าแล้ว", 800);
+  };
+
+  caregiverChk.onchange = ()=>{
+    debugEl.style.display = caregiverChk.checked ? "block" : "none";
+    calDebug.style.display = caregiverChk.checked ? "block" : "none";
+  };
+
+  btnSave.onclick = ()=>{ saveSession(); };
+  btnBackRun.onclick = ()=>{ showScreen("run"); };
+  btnBackSafety.onclick = ()=>{ showScreen("safety"); };
+
+  setTheme(false);
+  setScale(fontScaleSel.value);
+
+  renderBars(historyBars, loadHistory());
+
+  runStateEl.textContent = "Loading model...";
+  runStateEl.className = "badge";
+  calState.textContent = "Loading model...";
+  calState.className = "badge";
+  await setup();
+  runStateEl.textContent = "Ready";
+  runStateEl.className = "badge";
+  calState.textContent = "Ready";
+  calState.className = "badge";
+</script>
+
+</body>
+</html>
